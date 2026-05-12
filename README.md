@@ -144,6 +144,9 @@ WordleGame/
 │
 ├── Models/
 │     Attempt.cs
+│     User.cs
+│     Score.cs
+│     Word.cs
 │
 ├── Core/
 │     Game.cs
@@ -151,11 +154,17 @@ WordleGame/
 │     GuessValidator.cs
 │     FeedbackGenerator.cs
 │
+├── Database/
+│     DbConnectionFactory.cs
+│     GameRepository.cs
+│
 ├── Exceptions/
 │     InvalidGuessException.cs
 │
 └── Program.cs
 ```
+
+> The application uses PostgreSQL and Npgsql. Set the `WORDLE_GAME_CONNECTION` environment variable to your connection string, or update `DbConnectionFactory` with your database details.
 
 ---
 
@@ -178,35 +187,43 @@ InvalidGuessException
 
 # Output Screenshots
 
-## Easy Mode
-
-![Easy Mode](op-ss/easy.png)
-
----
-
-## Hard Mode
-
-![Hard Mode](op-ss/hard.png)
+- Project flow  
+  ![Project Flow](op-ss/runthrough.png)
 
 ---
 
-# Sample Output
-
-```text
-WORD GUESSING GAME
-
-1. Easy
-2. Hard
-
-Choose difficulty : 1
-
-Attempt 1/6 : APPLE
-
-A P P L E
-G X Y X G
-```
+- User registration and login  
+  ![Registration](op-ss/registration.png)
 
 ---
+
+- Final score card displayed after game completion  
+  ![Final Score Card](op-ss/final-scorecard.png)
+
+---
+
+- Easy mode gameplay  
+  ![Easy Mode](op-ss/easy.png)
+
+---
+
+- Hard mode gameplay  
+  ![Hard Mode](op-ss/hard.png)
+
+---
+
+- Exception handling for invalid word inputs  
+  ![Error Handling](op-ss/error-handling.png)
+
+---
+
+- Wrong password validation during login  
+  ![Wrong Password Error](op-ss/error2.png)
+
+---
+
+- PostgreSQL database tables (`users`, `words`, `scores`)  
+  ![Postgre Tables](op-ss/tables.png)
 
 # Conclusion
 

@@ -1,150 +1,278 @@
+using System;
+using System.Collections.Generic;
+using WordleGame.Database;
 using WordleGame.Exceptions;
+using WordleGame.Models;
 
 namespace WordleGame.Core
 {
     internal class Game
     {
-        private WordProvider words;
-        private GuessValidator guess;
-        private FeedbackGenerator feed;
+        private readonly WordProvider wordProvider;
+        private readonly GuessValidator validator;
+        private readonly FeedbackGenerator feedbackGenerator;
+        private readonly GameRepository repository;
 
-        private string hiddenWord;
-
-        private int attemptCount;
-
-        private List<string> prevGuesses;
-
-        private int max; // maximum number of attempts allowed
-        private int sco = 0; // score of the player
-
-        public Game(int tries)
+        public Game()
         {
-            max = tries;
-            words = new WordProvider();
-            guess = new GuessValidator();
-            feed = new FeedbackGenerator();
-
-            prevGuesses = new List<string>();
-
-            hiddenWord = words.ChooseWord();
-
-            attemptCount = 0;
+            repository = new GameRepository();
+            wordProvider = new WordProvider(repository);
+            validator = new GuessValidator();
+            feedbackGenerator = new FeedbackGenerator();
         }
 
-        public void Start()
+        public void Start(User currentUser)
         {
-            Console.WriteLine("WORD GUESSING GAME");
-            Console.WriteLine();
+            bool playAgain = true;
 
-            while (attemptCount < max)
+            while (playAgain)
             {
-                Console.Write($"Attempt {attemptCount + 1}/{max} : ");  
+                Console.Clear();
 
-                string userInput = Console.ReadLine()!;
+                string difficulty =
+                    SelectDifficulty();
 
-                try
+                int maxAttempts =
+                    difficulty == "Hard" ? 4 : 6;
+
+                string hiddenWord =
+                    wordProvider.ChooseWord();
+
+                List<string> previousGuesses =
+                    new List<string>();
+
+                bool guessedCorrectly = false;
+
+                Console.ForegroundColor =
+                    ConsoleColor.Cyan;
+
+                Console.WriteLine("WORD GUESSING GAME");
+
+                Console.ResetColor();
+
+                Console.WriteLine(
+                    $"Player: {currentUser.Username} | Difficulty: {difficulty}");
+
+                for (int attempt = 1;
+                     attempt <= maxAttempts;
+                     attempt++)
                 {
-                    guess.CheckGuess(userInput, prevGuesses);
+                    Console.WriteLine();
+                    Console.Write(
+                        $"Attempt {attempt}/{maxAttempts} : ");
 
-                    userInput = userInput.ToUpper();
+                    string userInput =
+                        Console.ReadLine()?.Trim().ToUpper() ?? "";
 
-                    prevGuesses.Add(userInput);
-
-                    attemptCount++;
-
-                    string res = feed.ValidateLetters(hiddenWord, userInput);
-
-                    Feedback(userInput, res);
-
-                    // player guessed correctly
-                    if (res == "GGGGG")
+                    try
                     {
-                        Win();
-                        return;
+                        validator.CheckGuess(
+                            userInput,
+                            previousGuesses);
+
+                        previousGuesses.Add(userInput);
+
+                        string feedback =
+                            feedbackGenerator.ValidateLetters(
+                                hiddenWord,
+                                userInput);
+
+                        Console.WriteLine();
+
+                        feedbackGenerator
+                            .DisplayColoredFeedback(
+                                userInput,
+                                feedback);
+
+                        if (feedback == "GGGGG")
+                        {
+                            guessedCorrectly = true;
+
+                            Console.WriteLine();
+
+                            DisplayWinningComment(attempt);
+
+                            int score =
+                                CalculateScore(attempt);
+
+                            Console.ForegroundColor =
+                                ConsoleColor.Green;
+
+                            Console.WriteLine(
+                                $"Your score : {score}");
+
+                            Console.ResetColor();
+
+                            repository.SaveScore(
+                                new Score(currentUser.UserId, score, difficulty));
+
+                            Console.ForegroundColor =
+                                ConsoleColor.DarkGreen;
+
+                            Console.WriteLine(
+                                "Score saved to the database.");
+
+                            Console.ResetColor();
+
+                            break;
+                        }
+                    }
+                    catch (InvalidGuessException ex)
+                    {
+                        Console.ForegroundColor =
+                            ConsoleColor.Red;
+
+                        Console.WriteLine(ex.Message);
+
+                        Console.ResetColor();
+
+                        attempt--;
                     }
                 }
-                catch (InvalidGuessException exc)
+
+                if (!guessedCorrectly)
                 {
-                    Console.WriteLine(exc.Message);
                     Console.WriteLine();
+
+                    Console.ForegroundColor =
+                        ConsoleColor.Red;
+
+                    Console.WriteLine(
+                        "Better luck next time!");
+
+                    Console.WriteLine(
+                        $"Hidden word was : {hiddenWord}");
+
+                    Console.ResetColor();
                 }
+
+                Console.WriteLine();
+
+                Console.ForegroundColor =
+                    ConsoleColor.Yellow;
+
+                Console.Write(
+                    "Would you like to play again? (Y/N): ");
+
+                Console.ResetColor();
+
+                string choice =
+                    Console.ReadLine()?.Trim().ToUpper() ?? "";
+
+                playAgain = choice == "Y";
             }
 
             Console.WriteLine();
-            Console.WriteLine($"Hidden word was : {hiddenWord}");
-            Console.WriteLine("Better luck next time :(");
+            Console.ForegroundColor =
+                ConsoleColor.Cyan;
+
+            Console.WriteLine(
+                "Thank you for playing. See you next time!");
+
+            Console.ResetColor();
         }
 
-        private void Feedback(string word, string res)
+        private string SelectDifficulty()
         {
-            Console.WriteLine();
-
-            for (int i = 0; i < word.Length; i++)
+            while (true)
             {
-                Console.Write(word[i] + " ");
-            }
+                Console.WriteLine();
+                Console.WriteLine(
+                    "Choose difficulty mode:");
 
-            Console.WriteLine();
+                Console.WriteLine(
+                    "1. Easy (6 attempts)");
 
-            for (int i = 0; i < res.Length; i++)
-            {
-                if (res[i] == 'G')
+                Console.WriteLine(
+                    "2. Hard (4 attempts)");
+
+                Console.Write("Select mode: ");
+
+                string choice =
+                    Console.ReadLine() ?? "";
+
+                if (choice == "1")
                 {
-                    Console.ForegroundColor = ConsoleColor.Green;
-                }
-                else if (res[i] == 'Y')
-                {
-                    Console.ForegroundColor = ConsoleColor.Yellow;
-                }
-                else
-                {
-                    Console.ForegroundColor = ConsoleColor.DarkGray;
+                    Console.ForegroundColor =
+                        ConsoleColor.Green;
+
+                    Console.WriteLine(
+                        "Easy mode selected. You will have 6 attempts.");
+
+                    Console.ResetColor();
+
+                    return "Easy";
                 }
 
-                Console.Write(res[i] + " ");
+                if (choice == "2")
+                {
+                    Console.ForegroundColor =
+                        ConsoleColor.Yellow;
+
+                    Console.WriteLine(
+                        "Hard mode selected. You will have 4 attempts.");
+
+                    Console.ResetColor();
+
+                    return "Hard";
+                }
+
+                Console.ForegroundColor =
+                    ConsoleColor.Red;
+
+                Console.WriteLine(
+                    "Invalid option. Please select 1 or 2.");
 
                 Console.ResetColor();
             }
-
-            Console.WriteLine();
-            Console.WriteLine();
         }
 
-        private void Win()
+        private int CalculateScore(int attempt)
         {
-            Console.WriteLine();
+            return attempt switch
+            {
+                1 => 100,
+                2 => 80,
+                3 => 60,
+                4 => 40,
+                5 => 20,
+                _ => 0
+            };
+        }
 
-            if (attemptCount == 1)
+        private void DisplayWinningComment(int attempt)
+        {
+            Console.ForegroundColor =
+                ConsoleColor.Green;
+
+            switch (attempt)
             {
-                sco = 100;
-                Console.WriteLine("Genius!");
+                case 1:
+                    Console.WriteLine("Genius!");
+                    break;
+
+                case 2:
+                    Console.WriteLine("Excellent!");
+                    break;
+
+                case 3:
+                    Console.WriteLine("Great job!");
+                    break;
+
+                case 4:
+                    Console.WriteLine("Good work!");
+                    break;
+
+                case 5:
+                    Console.WriteLine("Nice try!");
+                    break;
+
+                default:
+                    Console.WriteLine("That was close!");
+                    break;
             }
-            else if (attemptCount == 2)
-            {
-                sco = 80;
-                Console.WriteLine("Excellent!");
-            }
-            else if (attemptCount == 3)
-            {
-                sco = 60;
-                Console.WriteLine("Great job!");
-            }
-            else if (attemptCount == 4)
-            {
-                sco = 40;
-                Console.WriteLine("Good work!");
-            }
-            else if (attemptCount == 5)
-            {
-                sco = 20;
-                Console.WriteLine("Nice try!");
-            }
-            else
-            {
-                sco = 0;
-                Console.WriteLine("That was close!");
-            }
-            Console.WriteLine($"Your score : {sco}");
+
+            Console.ResetColor();
         }
     }
 }

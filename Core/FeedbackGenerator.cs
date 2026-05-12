@@ -1,3 +1,5 @@
+using System;
+
 namespace WordleGame.Core
 {
     internal class FeedbackGenerator
@@ -11,14 +13,15 @@ namespace WordleGame.Core
 
             for (int i = 0; i < hiddenWord.Length; i++)
             {
-                // exact match then 'G'
+                // exact match then G
                 if (userInput[i] == hiddenWord[i])
                 {
                     res[i] = 'G';
                     alreadyChecked[i] = true;
                 }
             }
-            //remaining letters
+
+            // remaining letters
             for (int i = 0; i < hiddenWord.Length; i++)
             {
                 if (res[i] == 'G')
@@ -30,7 +33,8 @@ namespace WordleGame.Core
 
                 for (int j = 0; j < hiddenWord.Length; j++)
                 {
-                    if (!alreadyChecked[j] && userInput[i] == hiddenWord[j])
+                    if (!alreadyChecked[j] &&
+                        userInput[i] == hiddenWord[j])
                     {
                         found = true;
                         alreadyChecked[j] = true;
@@ -49,7 +53,64 @@ namespace WordleGame.Core
             }
 
             return new string(res);
-        }    
+        }
+
+        // displays colored feedback
+        public void DisplayColoredFeedback(string guess, string feedback)
+        {
+            // print guessed letters with colors
+            for (int i = 0; i < guess.Length; i++)
+            {
+                char result = feedback[i];
+
+                if (result == 'G')
+                {
+                    Console.ForegroundColor =
+                        ConsoleColor.Green;
+                }
+                else if (result == 'Y')
+                {
+                    Console.ForegroundColor =
+                        ConsoleColor.Yellow;
+                }
+                else
+                {
+                    Console.ForegroundColor =
+                        ConsoleColor.DarkGray;
+                }
+
+                Console.Write(guess[i] + " ");
+            }
+
+            Console.ResetColor();
+            Console.WriteLine();
+
+            // print feedback letters with colors
+            for (int i = 0; i < feedback.Length; i++)
+            {
+                char result = feedback[i];
+
+                if (result == 'G')
+                {
+                    Console.ForegroundColor =
+                        ConsoleColor.Green;
+                }
+                else if (result == 'Y')
+                {
+                    Console.ForegroundColor =
+                        ConsoleColor.Yellow;
+                }
+                else
+                {
+                    Console.ForegroundColor =
+                        ConsoleColor.DarkGray;
+                }
+
+                Console.Write(result + " ");
+            }
+
+            Console.ResetColor();
+            Console.WriteLine();
+        }
     }
 }
-
